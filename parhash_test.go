@@ -42,3 +42,17 @@ func TestParhash(t *testing.T) {
 	assert.Equal(s1.Sum(nil), p.GetSum("sha1"))
 	assert.Equal(f.Sum(nil), p.GetSum("fnv64a"))
 }
+
+func BenchmarkParhash(b *testing.B) {
+
+	p := New()
+	p.Add("md5", md5.New())
+	p.Add("sha1", sha1.New())
+	p.Add("fnv64a", fnv.New64a())
+
+	data := []byte("some testing data to grind through the hashes")
+
+	for i := 0; i < b.N; i++ {
+		p.Write(data)
+	}
+}
