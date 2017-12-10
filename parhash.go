@@ -6,70 +6,80 @@ import (
 	"sync"
 )
 
-type workMessage struct {
+var (
+	workQueue chan *hasher
+)
+
+// to parallelize work the package maintains one worker per CPU
+func init() {
+	numCPUs := runtime.NumCPU()
+	workQueue = make(chan *hasher, numCPUs+1)
+
+	// create a worker for each CPU
+	for i := 0; i < numCPUs; i++ {
+		go func() {
+			for h := range workQueue {
+				h.hash.Write(*h.data)
+				h.wg.Done()
+			}
+		}()
+	}
+}
+
+type hasher struct {
 	hash hash.Hash
-	data []byte
+
+	// points to data to be written to the hash
+	data *[]byte
+
+	// share a WaitGroup with to trigger the Done()
+	wg *sync.WaitGroup
 }
 
 type Parhash struct {
-	sync.Mutex
-	wg       sync.WaitGroup
-	hashes   map[string]hash.Hash
-	workChan chan *workMessage
+	wg     sync.WaitGroup
+	hashes map[string]*hasher
 }
 
 func New() *Parhash {
-	parhash := &Parhash{
-		hashes:   make(map[string]hash.Hash),
-		workChan: make(chan *workMessage, 10),
-	}
-
-	// start some goroutines to process parhash's work
-	for i := 0; i < runtime.NumCPU(); i++ {
-		go func(p *Parhash) {
-			for msg := range p.workChan {
-				msg.hash.Write(msg.data)
-				p.wg.Done()
-			}
-		}(parhash)
-	}
-
-	return parhash
+	return &Parhash{hashes: make(map[string]*hasher)}
 }
 
-// Stop shutdown Parhashes goroutines
-func (p *Parhash) Stop() {
-	close(p.workChan)
-}
-
-func (p *Parhash) Add(id string, h hash.Hash) error {
-	p.hashes[id] = h
-	return nil
-}
-
-func (p *Parhash) Reset() {
-	for _, h := range p.hashes {
-		h.Reset()
+func (p *Parhash) Add(id string, h hash.Hash) {
+	p.hashes[id] = &hasher{
+		wg:   &p.wg,
+		hash: h,
+		data: nil,
 	}
 }
 
 func (p *Parhash) GetSum(id string) []byte {
 
-	hash, ok := p.hashes[id]
+	hasher, ok := p.hashes[id]
 	if !ok {
 		return []byte{}
 	}
 
-	return hash.Sum(nil)
+	return hasher.hash.Sum(nil)
 }
 
 func (p *Parhash) Write(b []byte) (n int, err error) {
-	for _, h := range p.hashes {
-		msg := &workMessage{hash: h, data: b}
+	for _, hasher := range p.hashes {
 		p.wg.Add(1)
-		p.workChan <- msg
+		hasher.data = &b
+		workQueue <- hasher
 	}
 
 	p.wg.Wait()
+	return len(b), nil
+}
+
+// writeSerial is only used for benchmarking to contrast
+// performance differences between serial and parallel hashing
+func (p *Parhash) writeSerial(b []byte) (n int, err error) {
+	for _, hasher := range p.hashes {
+		hasher.hash.Write(b)
+	}
+
 	return len(b), nil
 }

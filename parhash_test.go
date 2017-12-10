@@ -44,14 +44,26 @@ func TestParhash(t *testing.T) {
 	assert.Equal(f.Sum(nil), p.GetSum("fnv64a"))
 }
 
-func BenchmarkParhash(b *testing.B) {
+func BenchmarkSerial(b *testing.B) {
+	p := New()
+	p.Add("md5", md5.New())
+	p.Add("sha1", sha1.New())
+	p.Add("fnv64a", fnv.New64a())
+
+	data := []byte(strings.Repeat("A", 1024*1024))
+	for i := 0; i < b.N; i++ {
+		p.writeSerial(data)
+	}
+}
+
+func BenchmarkParallel(b *testing.B) {
 
 	p := New()
 	p.Add("md5", md5.New())
 	p.Add("sha1", sha1.New())
 	p.Add("fnv64a", fnv.New64a())
 
-	data := []byte(strings.Repeat("A", 64*1024))
+	data := []byte(strings.Repeat("A", 1024*1024))
 
 	for i := 0; i < b.N; i++ {
 		p.Write(data)
