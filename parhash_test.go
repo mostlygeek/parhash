@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"hash/fnv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -50,7 +51,7 @@ func BenchmarkParhash(b *testing.B) {
 	p.Add("sha1", sha1.New())
 	p.Add("fnv64a", fnv.New64a())
 
-	data := []byte("some testing data to grind through the hashes")
+	data := []byte(strings.Repeat("A", 64*1024))
 
 	for i := 0; i < b.N; i++ {
 		p.Write(data)

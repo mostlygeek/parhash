@@ -2,15 +2,44 @@ package parhash
 
 import (
 	"hash"
-	"io"
+	"runtime"
+	"sync"
 )
 
+type workMessage struct {
+	hash hash.Hash
+	data []byte
+}
+
 type Parhash struct {
-	hashes map[string]hash.Hash
+	sync.Mutex
+	wg       sync.WaitGroup
+	hashes   map[string]hash.Hash
+	workChan chan *workMessage
 }
 
 func New() *Parhash {
-	return &Parhash{hashes: make(map[string]hash.Hash)}
+	parhash := &Parhash{
+		hashes:   make(map[string]hash.Hash),
+		workChan: make(chan *workMessage, 10),
+	}
+
+	// start some goroutines to process parhash's work
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go func(p *Parhash) {
+			for msg := range p.workChan {
+				msg.hash.Write(msg.data)
+				p.wg.Done()
+			}
+		}(parhash)
+	}
+
+	return parhash
+}
+
+// Stop shutdown Parhashes goroutines
+func (p *Parhash) Stop() {
+	close(p.workChan)
 }
 
 func (p *Parhash) Add(id string, h hash.Hash) error {
@@ -36,16 +65,11 @@ func (p *Parhash) GetSum(id string) []byte {
 
 func (p *Parhash) Write(b []byte) (n int, err error) {
 	for _, h := range p.hashes {
-		n, err = h.Write(b)
-		if err != nil {
-			return
-		}
-
-		if n != len(b) {
-			err = io.ErrShortWrite
-			return
-		}
+		msg := &workMessage{hash: h, data: b}
+		p.wg.Add(1)
+		p.workChan <- msg
 	}
 
+	p.wg.Wait()
 	return len(b), nil
 }
