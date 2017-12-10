@@ -15,9 +15,9 @@ func TestParhash(t *testing.T) {
 
 	p := New()
 
-	p.Add("md5", md5.New())
-	p.Add("sha1", sha1.New())
-	p.Add("fnv64a", fnv.New64a())
+	pMD5 := p.Add(md5.New())
+	pSHA1 := p.Add(sha1.New())
+	pFNV := p.Add(fnv.New64a())
 
 	// for checking...
 	m := md5.New()
@@ -34,21 +34,22 @@ func TestParhash(t *testing.T) {
 
 		// write all the data into the hashes
 		p.Write(data)
+
 		m.Write(data)
 		s1.Write(data)
 		f.Write(data)
 	}
 
-	assert.Equal(m.Sum(nil), p.GetSum("md5"))
-	assert.Equal(s1.Sum(nil), p.GetSum("sha1"))
-	assert.Equal(f.Sum(nil), p.GetSum("fnv64a"))
+	assert.Equal(m.Sum(nil), pMD5.Sum(nil))
+	assert.Equal(s1.Sum(nil), pSHA1.Sum(nil))
+	assert.Equal(f.Sum(nil), pFNV.Sum(nil))
 }
 
 func BenchmarkSerial(b *testing.B) {
 	p := New()
-	p.Add("md5", md5.New())
-	p.Add("sha1", sha1.New())
-	p.Add("fnv64a", fnv.New64a())
+	p.Add(md5.New())
+	p.Add(sha1.New())
+	p.Add(fnv.New64a())
 
 	data := []byte(strings.Repeat("A", 1024*1024))
 	for i := 0; i < b.N; i++ {
@@ -59,9 +60,9 @@ func BenchmarkSerial(b *testing.B) {
 func BenchmarkParallel(b *testing.B) {
 
 	p := New()
-	p.Add("md5", md5.New())
-	p.Add("sha1", sha1.New())
-	p.Add("fnv64a", fnv.New64a())
+	p.Add(md5.New())
+	p.Add(sha1.New())
+	p.Add(fnv.New64a())
 
 	data := []byte(strings.Repeat("A", 1024*1024))
 

@@ -38,29 +38,21 @@ type hasher struct {
 
 type Parhash struct {
 	wg     sync.WaitGroup
-	hashes map[string]*hasher
+	hashes []*hasher
 }
 
 func New() *Parhash {
-	return &Parhash{hashes: make(map[string]*hasher)}
+	return &Parhash{hashes: make([]*hasher, 0, 2)}
 }
 
-func (p *Parhash) Add(id string, h hash.Hash) {
-	p.hashes[id] = &hasher{
+func (p *Parhash) Add(h hash.Hash) hash.Hash {
+	p.hashes = append(p.hashes, &hasher{
 		wg:   &p.wg,
 		hash: h,
 		data: nil,
-	}
-}
+	})
 
-func (p *Parhash) GetSum(id string) []byte {
-
-	hasher, ok := p.hashes[id]
-	if !ok {
-		return []byte{}
-	}
-
-	return hasher.hash.Sum(nil)
+	return h
 }
 
 func (p *Parhash) Write(b []byte) (n int, err error) {
