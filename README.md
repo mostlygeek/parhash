@@ -1,3 +1,5 @@
+[![](https://godoc.org/github.com/mostlygeek/parhash?status.svg)](https://godoc.org/github.com/mostlygeek/parhash)
+
 # About
 
 Parhash presents tools for making it easy to generate multiple
