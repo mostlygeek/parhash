@@ -50,6 +50,23 @@ fmt.Printf("SHA1: %s", hex.EncodeToString(hash2.Sum(nil)))
 // SHA1: 0a4d55a8d778e5022fab701977c5d840bbc486d0
 ```
 
+## CLI
+
+A command line tool is included as an example. It includes many of the hash
+algorithms available from go's standard library. Try it out, it's fun!
+
+To install it do this:
+
+```
+cd cmd
+go build -o $GOPATH/bin/parhasher parhasher.go
+```
+
+Usage:
+
+* `parhasher -h` - prints out help
+* `parhasher -sha1 -md5 <file>` - computes a sha1 and md5 sum for <file>
+
 ## License
 
 ```
