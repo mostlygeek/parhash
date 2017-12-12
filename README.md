@@ -65,6 +65,7 @@ go build -o $GOPATH/bin/parhasher parhasher.go
 Usage:
 
 * `parhasher -h` - prints out help
+* `parhasher -a <file>` - computes sums using all available hash algorithms for <file>
 * `parhasher -sha1 -md5 <file>` - computes a sha1 and md5 sum for <file>
 
 ## License
