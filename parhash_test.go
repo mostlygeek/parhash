@@ -3,12 +3,31 @@ package parhash
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"encoding/hex"
+	"fmt"
 	"hash/fnv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func ExampleParhash_usage() {
+	p := New()
+
+	// Add returns the same hash to make creation and assignment more concise
+	hash1 := p.Add(md5.New())
+	hash2 := p.Add(sha1.New())
+
+	// Parhash is an io.Writer
+	fmt.Fprintf(p, "Hello World")
+	fmt.Printf("MD5 : %s\n", hex.EncodeToString(hash1.Sum(nil)))
+	fmt.Printf("SHA1: %s", hex.EncodeToString(hash2.Sum(nil)))
+
+	// Output:
+	// MD5 : b10a8db164e0754105b7a99be72e3fe5
+	// SHA1: 0a4d55a8d778e5022fab701977c5d840bbc486d0
+}
 
 func TestParhash(t *testing.T) {
 	assert := assert.New(t)
@@ -43,6 +62,16 @@ func TestParhash(t *testing.T) {
 	assert.Equal(m.Sum(nil), pMD5.Sum(nil))
 	assert.Equal(s1.Sum(nil), pSHA1.Sum(nil))
 	assert.Equal(f.Sum(nil), pFNV.Sum(nil))
+}
+
+// writeSerial is only used for benchmarking to contrast
+// performance differences between serial and parallel hashing
+func (p *Parhash) writeSerial(b []byte) (n int, err error) {
+	for _, hasher := range p.hashes {
+		hasher.hash.Write(b)
+	}
+
+	return len(b), nil
 }
 
 func BenchmarkSerial(b *testing.B) {
